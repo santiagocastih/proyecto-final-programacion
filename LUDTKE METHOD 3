@@ -1,0 +1,123 @@
+#LUDTKE METHOD 3 (LA TERCERA ES LA VENCIDA)
+
+import math
+
+def cosd(angle):
+    return math.cos(math.radians(angle))
+
+def sind(angle):
+    return math.sin(math.radians(angle))
+
+def atand(value):
+    return math.degrees(math.atan(value))
+
+def main():
+    TODEN = 10000
+    G = 32.2  # Gravedad en ft/s^2
+
+  print("INPUT IOPT (1 for full calculation, 2 for simplified):")
+    IOPT = int(input())
+
+    #INPUT ALT (altitude in ft), RHO (density in slugs/ft^3), VS (steady-state velocity in ft/s), CDSO (drag area in ft^2), TO (inflation time in s), W (weight in lbs), J (inflation profile exponent), TAU (time constant), ALPHA0 (initial angle in degrees):
+    #3000 0.001527032 233.431766 330.0784379 0.9153	 86.18637518 6 0 84 - Main
+    #3000 0.001527032 233.431766 19.6225897 0.19272	86.18637518 6 0 84 - Drogue
+
+    #10000 0.001527032 170.439638 10.7639 0.343 86.18637518 6 0 0
+    #10000 0.001527032 233.431766 10.7639 0.251 86.18637518 3 0 0
+    #1476.38 0.001986888 89,1076144 442.6438597 0.2007 86.18637518 6 0 0    -----Main nominal
+    #1476.38 0.001986888 196.8504 181.0810897 0.151 86.18637518 6 0 0
+
+    #10000 0.001527032 170.439638 7.1149379 0.343 86.18637518 3 0 0  ---- Drogue Nominal (SRAD)
+    #10000 0.001527032 170.439638 7.1149379 0.2007 86.18637518 3 0 0 ---- Drogue Nominal (COTS)
+    #10000 0.001527032 233.431766 10.7639 0.251 86.18637518 3 0 0  ---- Drogue OFF-Nominal (COTS)
+    #10000 0.001527032 233.431766 10.7639 0.151 86.18637518 3 0 0 ---- Drogue OFF-Nominal (SRAD)
+
+    #1476.38 0.001986888 89.1076144 181.0810897 1.533 86.18637518 6 0 0    ---- Main Nominal(COTS)
+    #1476.38 0.001986888 89.1076144 442.6438597 2.398 86.18637518 6 0 0    ---- Main Nominal(SRAD)
+    #1476.38 0.001527032 196.8504 442.6438597 0.694 86.18637518 6 0 0    ---- Main OFF-Nominal(COTS)
+    #1476.38 0.001527032 196.8504 181.0810897 1.085 86.18637518 6 0 0    ---- Main OFF-Nominal(SRAD)
+
+    #10000 0.001527032 82.546 8.697 0.228 81.218 3 0 0  ---- Drogue Nominal (Design)
+    #10000 0.001527032 126.411 8.697 0.228 81.218 3 0 0  ---- Drogue Nominal (Theoretical)
+    #10000 0.001527032 233.432 8.697 0.167 81.218 3 0 0  ---- Drogue OFF-Nominal (Design)
+    #10000 0.001527032 126.411 8.697 0.167 81.218 3 0 0 ---- Drogue OFF-Nominal (Theoretical)
+
+    #1476.38 0.00209 14.764 209.864 2.317 81.218 6 0 0    ---- Main Nominal(Design)
+    #1476.38 0.00209 22.608 209.864 2.317 81.218 6 0 0    ---- Main Nominal(Theoretical)
+    #1476.38 0.00161 196.8504 209.864 0.971 81.218 6 0 0    ---- Main OFF-Nominal(Design)
+    #1476.38 0.00161 196.8504 209.864 0.971 81.218 6 0 0    ---- Main OFF-Nominal(Theoretical)
+
+ALT, RHO, VS, CDSO, TO, W, J, TAU, ALPHA0 = map(float, "10000 0.001527 233.432 8.697 0.228 81.218 6 0 0".split())
+
+
+    if IOPT == 1:
+        print("INPUT AMO (initial area in ft^2), ASO (steady-state area in ft^2), K (shape factor), CP (pressure coefficient), N (exponent for volume calculation), VO (initial volume in ft^3):")
+        AMO, ASO, XK, CP, N, VO = map(float, input().split())
+    else:
+        AMO, ASO, XK, CP, N, VO = 0, 0, 0, 0, 0, 0
+
+    DT = TO / TODEN  # Time step
+    S = 0  # Vertical distance
+    X = TAU  # Time constant
+    CDS = TAU * CDSO  # Drag area
+    FS = 0.5 * RHO * VS**2 * CDSO  # Steady-state drag force
+    F = TAU * FS  # Initial force
+    VOL = 0.0  # Volume
+    IPASS = 0  # Iteration counter
+    DT = 10.0 * DT  # Adjusted time step
+
+    # Initialize variables
+    T = 0.0  # Time
+    V = VS  # Velocity
+    ALPHA = ALPHA0  # Angle of attack
+    R = 0  # Horizontal distance
+    DS = 0  # Total distance
+    XM = (2.0 * W) / (RHO * G * CDSO * VS * TO)  # Mass parameter
+
+    # Print deployment conditions and system parameters
+    print("\nDEPLOYMENT CONDITIONS           SYSTEM PARAMETERS")
+    print(f"ALTITUDE = {ALT:7.0f} FT          STEADY STATE DRAG AREA CDSO = {CDSO:8.2f} FT2")
+    print(f"DENSITY = {RHO:10.7f} SLUGS/FT3          WEIGHT W = {W:6.1f} LBS")
+    print(f"VELOCITY VS = {VS:6.1f} FT/SEC          INFLATION TIME TO = {TO:7.3f} SEC")
+    print(f"J = {J:2.0f}          STEADY STATE DRAG FORCE FS = {FS:9.1f} LBS")
+    print(f"TAU = {TAU:6.3f}          M = {XM:8.5f}")
+    print(f"ALPHA0 = {ALPHA0:6.2f} DEG")
+    if IOPT == 1:
+        print(f"N = {N:6.3f}")
+        print(f"AMO = {AMO:8.2f} FT2")
+        print(f"ASO = {ASO:8.2f} FT2")
+        print(f"K = {XK:6.2f}")
+        print(f"VO GEOM = {VO:9.2f} FT3")
+        print(f"C.P. = {CP:6.2f}")
+
+    print("\nTIME   VELOCITY   ALPHA   RANGE   S   DISTANCE   SHOCK   F")
+    print("SEC    FT/SEC     DEG     FT      FT   FT         FACTOR  LBS")
+
+    # Main loop for calculation
+    while T <= TO:
+        TFAC = (1.0 - TAU) * (T / TO) ** J + TAU  # Time factor
+        CDS = CDSO * TFAC  # Adjusted drag area
+        DVX = -V**2 * cosd(ALPHA) * TFAC / (XM * VS * TO) * DT  # Change in horizontal velocity
+        DVY = (G - V**2 * TFAC * sind(ALPHA) / (XM * VS * TO)) * DT  # Change in vertical velocity
+        VX = V * cosd(ALPHA)  # Horizontal velocity
+        VY = V * sind(ALPHA)  # Vertical velocity
+        VX += DVX
+        VY += DVY
+        V = math.sqrt(VX**2 + VY**2)  # Resultant velocity
+        if VX != 0.0:
+            ALPHA = atand(VY / VX)  # Update angle of attack
+        R += VX * DT  # Update horizontal distance
+        S += VY * DT  # Update vertical distance
+        DS += V * DT  # Update total distance
+        X = (V / VS)**2 * CDS / CDSO  # Shock factor
+        F = X * FS  # Force calculation
+
+        # Print current state
+        print(f"{T:5.3f} {V:10.2f} {ALPHA:10.2f} {R:9.1f} {S:11.2f} {DS:11.2f} {X:13.3e} {F:11.1f}")
+
+        T += DT  # Increment time
+
+    print("\nCalculation complete.")
+
+if __name__ == "__main__":
+    main()
